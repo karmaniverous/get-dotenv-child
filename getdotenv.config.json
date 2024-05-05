@@ -1,0 +1,4 @@
+{
+  "dynamicPath": "./.env.dynamic.js",
+  "paths": "./ ./environments"
+}

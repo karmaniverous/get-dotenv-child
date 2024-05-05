@@ -106,7 +106,7 @@ You aren't just restricted to custom commands. You can also use the base CLI to 
 getdotenvchild -e dev cmd echo %DYNAMIC%
 # dynamic dev public (a dynamically generated variable, more on that later)
 
-# or just...
+# cmd is the default command, so you can also just...
 getdotenvchild -e dev echo %DYNAMIC%
 # dynamic dev public
 ```
@@ -131,7 +131,8 @@ You would then articulate your script in `package.json` like this:
 ... and you'd execute it like this:
 
 ```bash
-npm run foo -- -e dev
+npm run foo -- -e dev   # on windows
+npm run foo --- -e dev  # on linux
 ```
 
 But if you are _really_ smart, you'll install [`@antfu/ni`](https://www.npmjs.com/package/@antfu/ni), which eliminates all kinds of cross-platform nonsense, and you can just do this:
@@ -139,6 +140,57 @@ But if you are _really_ smart, you'll install [`@antfu/ni`](https://www.npmjs.co
 ```bash
 nr foo -e dev
 ```
+
+## Under The Hood
+
+All the activity described above is driven by the following files:
+
+```
+└─ get-dotenv-child
+   ├─ .env
+   ├─ .env.dynamic.js
+   ├─ .env.local
+   ├─ environments
+   │  ├─ .env.dev
+   │  ├─ .env.dev.local
+   │  ├─ .env.test
+   │  └─ .env.test.local
+   ├─ getdotenv.config.json
+   └─ src
+      ├─ cli
+         └─ getdotenvchild
+            ├─ fooCommand.ts
+            └─ index.ts
+```
+
+### dotenv Files
+
+All of the files beginning with `.env` are dotenv files that look like this:
+
+```
+FEE=fie
+FOE=fum
+```
+
+`.env` comtains global public variables that apply to all environment and may be pushed to the git repository.
+
+Those ending in `.local` contain secrets and should not be pushed to the git repository. This is supported by an entry in [`.gitignore`](./.gitignore).
+
+Those with an environment name following `.env` (e.g. `.env.dev`, `env.dev.local`) contain environment-specific values, which augment or override any defined in the global files.
+
+These files may have a different naming convention and be located in any directory; this is specified in the [Options](#options) section below.
+
+### CLI Code
+
+The structure of the CLI and its package configuration follows the same conventions as the underlying template; see [that documentation](https://github.com/karmaniverous/npm-package-template-ts?tab=readme-ov-file#cli-generation) for more info.
+
+The difference here is that this project's CLI uses the `get-dotenv` CLI as its base and extends it with a new command, `foo`.
+
+The plumbing requires some familiarity with the [`commander`](https://www.npmjs.com/package/commander) library but is otherwise _very_ simple. It is fully explained in the comments on two source files in the [`cli`](./src/cli/) directory.
+
+See [Positional & Passthrough Options](#positional--passthrough-options) below for one key gotcha.
+
+### Options
 
 ## Positional & Passthrough Options
 

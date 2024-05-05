@@ -32,9 +32,9 @@ Find the following files:
 ```
 └─ get-dotenv-child
    ├─ .env.local.template
-   ├─ environments
-   │  ├─ .env.dev.local.template
-   │  └─ .env.test.local.template
+   └─ environments
+      ├─ .env.dev.local.template
+      └─ .env.test.local.template
 ```
 
 Copy each of these files and remove the `.template` extension from the copy. You should now have:
@@ -43,14 +43,16 @@ Copy each of these files and remove the `.template` extension from the copy. You
 └─ get-dotenv-child
    ├─ .env.local
    ├─ .env.local.template
-   ├─ environments
-   │  ├─ .env.dev.local
-   │  ├─ .env.dev.local.template
-   │  └─ .env.test.local
-   │  └─ .env.test.local.template
+   └─ environments
+      ├─ .env.dev.local
+      ├─ .env.dev.local.template
+      └─ .env.test.local
+      └─ .env.test.local.template
 ```
 
 The resulting `.local` files contain "secrets" for the purpose of this demo, and are gitignored.
+
+P.S. Like those neat directory trees? Try [`dirtree`](https://github.com/karmaniverous/dirtree)!
 
 ## A Quick Demo
 
@@ -96,7 +98,7 @@ getdotenvchild foo -t '$SECRET'
 # foo test secret
 ```
 
-The first three commands pulled the a default environment variable (PUBLIC) from different contexts and passed it to the `foo` function. The last command overrode the default input with a secret value (the SECRET variable).
+The first three commands pulled the a default environment variable (`PUBLIC`) from different contexts and passed it to the `foo` function. The last command overrode the default input with a secret value (the `SECRET` variable).
 
 You aren't just restricted to custom commands. You can also use the base CLI to execute any shell command. For example:
 

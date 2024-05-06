@@ -186,13 +186,167 @@ The structure of the CLI and its package configuration follows the same conventi
 
 The difference here is that this project's CLI uses the `get-dotenv` CLI as its base and extends it with a new command, `foo`.
 
-The plumbing requires some familiarity with the [`commander`](https://www.npmjs.com/package/commander) library but is otherwise _very_ simple. It is fully explained in the comments on two source files in the [`cli`](./src/cli/) directory.
+The plumbing requires some familiarity with the [`commander`](https://www.npmjs.com/package/commander) library but is otherwise _very_ simple. It is fully explained in the comments on two source files in the [`src/cli` directory](./src/cli/).
 
 See [Positional & Passthrough Options](#positional--passthrough-options) below for one key gotcha.
 
-### Options
+### Configuration
 
-## Positional & Passthrough Options
+There are really three sets of options at work here:
+
+- The [`GetDotenvOptions`](https://github.com/karmaniverous/get-dotenv/blob/main/src/GetDotenvOptions.ts) object passed to `getDotenv` that tells the engine what to load and how. Unless you are calling `getDotenv` programmatically, you don't need to worry about this.
+
+- The [`GetDotenvCliGenerateOptions](https://github.com/karmaniverous/get-dotenv/blob/af562295f4d6867afb46e7a86870ced03d2f9c46/src/generateGetDotenvCli.ts#L38-L55) object passed to your CLI that sets the default configuration for the `getDotenv` options object and also some other stuff. See below for more info.
+
+- The options passed to the CLI at the command line, which can override many the options set above. We'll cover these below as well.
+
+Default options for your CLI can be set in three places, in reverse order of precedence:
+
+- A `getdotenv.config.json` file in the root of your CLI project. Think of these as the _global_ defaults for your CLI. They ship with your package and are the same for everyone.
+
+- Arguments passed to the `generateGetDotenvCli` function in your CLI's [`index.ts`](./src/cli/getdotenvchild/index.ts) file. These _can_ override values from your global `getdotenv.config.json` file, but the main purpose is to define any `logger` object and `preHook` or `postHook` functions, which won't fit in a JSON file.
+
+- When your CLI is installed in another project, the author can override your CLI defaults (except for the `logger`, `preHook`, and `postHook` functions) setting options in a local `getdotenv.config.json` file.
+
+As described in [A Quick Demo](#a-quick-demo), your CLI can execute arbitrary shell commands, and can thus call itself. When you do this, any options set and variables loaded by the the parent instance are passed down to the child instance.
+
+#### Options
+
+| Option                  | Type                                                                                                                                                            | Description                                                                                                                                       | Set Where?                                                                                                  | Default Value |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------- |
+| `alias`                 | `string`                                                                                                                                                        | Cli alias. Should align with the `bin` property in `package.json`.                                                                                | `getdotenv.config.json`<br>`generateGetDotenvCli`                                                           | `'getdotenv'` |
+| `debug`                 | `boolean \| undefined`                                                                                                                                          | Logs CLI internals when true.                                                                                                                     | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`-d, --debug`<br>`-D, --debug-off`                     | `undefined`   |
+| `defaultEnv`            | `string \| undefined`                                                                                                                                           | Default target environment (used if `env` is not provided).                                                                                       | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--default-env <string>`                               | `undefined`   |
+| `description`           | `string`                                                                                                                                                        | Cli description (appears in CLI help).                                                                                                            | `getdotenv.config.json`<br>`generateGetDotenvCli`                                                           | `'Base CLI.'` |
+| `dotenvToken`           | `string`                                                                                                                                                        | Filename token indicating a dotenv file.                                                                                                          | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--dotenv-token <string>`                              | `'.env'`      |
+| `dynamicPath`           | `string \| undefined`                                                                                                                                           | Path to JS module default-exporting an object keyed to dynamic variable functions.                                                                | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--dynamic-path <string>`                              | `undefined`   |
+| `env`                   | `string \| undefined`                                                                                                                                           | Target environment (dotenv expanded).                                                                                                             | `-e, --env <string>`                                                                                        | `undefined`   |
+| `excludeAll`            | `boolean`                                                                                                                                                       | Exclude all dotenv variables from loading.                                                                                                        | `-a, --exclude-all`<br>`-A, --exclude-all-off`                                                              | `false`       |
+| `excludeDynamic`        | `boolean`                                                                                                                                                       | Exclude dynamic variables from loading.                                                                                                           | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`-z, --exclude-dynamic`<br>`-Z, --exclude-dynamic-off` | `false`       |
+| `excludeEnv`            | `boolean`                                                                                                                                                       | Exclude environment-specific variables from loading.                                                                                              | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`-n, --exclude-env`<br>`-N, --exclude-env-off`         | `false`       |
+| `excludeGlobal`         | `boolean`                                                                                                                                                       | Exclude global variables from loading.                                                                                                            | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`-g, --exclude-global`<br>`-G, --exclude-global-off`   | `false`       |
+| `excludePrivate`        | `boolean`                                                                                                                                                       | Exclude private variables from loading.                                                                                                           | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`-r, --exclude-private`<br>`-R, --exclude-private-off` | `false`       |
+| `excludePublic`         | `boolean`                                                                                                                                                       | Exclude public variables from loading.                                                                                                            | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`-u, --exclude-public`<br>`-U, --exclude-public-off`   | `false`       |
+| `loadProcess`           | `boolean`                                                                                                                                                       | Load dotenv variables to `process.env`.                                                                                                           | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`-p, --load-process`<br>`-P, --load-process-off`       | `false`       |
+| `log`                   | `boolean`                                                                                                                                                       | Log loaded dotenv variables to `logger`.                                                                                                          | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`-l, --log`<br>`-L, --log-off`                         | `false`       |
+| `logger`                | `typeof console`                                                                                                                                                | A logger object that implements the `console` interface.                                                                                          | `generateGetDotenvCli`                                                                                      | `console`     |
+| `outputPath`            | `string \| undefined`                                                                                                                                           | If populated, writes consolidated dotenv file to this path (dotenv expanded).                                                                     | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`-o, --output-path <string>`                           | `undefined`   |
+| `paths`                 | `string`                                                                                                                                                        | A delimited string of paths to dotenv files.                                                                                                      | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--paths <string>`                                     | `'./'`        |
+| `pathsDelimiter`        | `string`                                                                                                                                                        | A delimiter string with which to split `paths`. Only used if `pathsDelimiterPattern` is not provided.                                             | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--paths-delimiter <string>`                           | `' '`         |
+| `pathsDelimiterPattern` | `string \| undefined`                                                                                                                                           | A regular expression pattern with which to split `paths`. Supersedes `pathsDelimiter`.                                                            | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--paths-delimiter-pattern <string>`                   | `undefined`   |
+| `preHook`               | [`GetDotenvCliPreHookCallback`](https://github.com/karmaniverous/get-dotenv/blob/af562295f4d6867afb46e7a86870ced03d2f9c46/src/generateGetDotenvCli.ts#L19-L26)  | A function that mutates inbound options & executes side effects within the `getDotenv` context before executing CLI commands.                     | `generateGetDotenvCli`                                                                                      | `undefined`   |
+| `privateToken`          | `string`                                                                                                                                                        | Filename token indicating private variables.                                                                                                      | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--private-token <string>`                             | `'local'`     |
+| `postHook`              | [`GetDotenvCliPostHookCallback`](https://github.com/karmaniverous/get-dotenv/blob/af562295f4d6867afb46e7a86870ced03d2f9c46/src/generateGetDotenvCli.ts#L27-L32) | A function that executes side effects within the `getDotenv` context after executing CLI commands.                                                | `generateGetDotenvCli`                                                                                      | `undefined`   |
+| `vars`                  | `string \| undefined`                                                                                                                                           | A delimited string of key-value pairs declaratively specifying variables & values to be loaded in addition to any dotenv files (dotenv expanded). | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`-v, --vars <string>`                                  | `undefined`   |
+| `varsAssignor`          | `string`                                                                                                                                                        | A string with which to split keys from values in `vars`. Only used if `varsDelimiterPattern` is not provided.                                     | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--vars-assignor <string>`                             | `'='`         |
+| `varsAssignorPattern`   | `string \| undefined`                                                                                                                                           | A regular expression pattern with which to split variable names from values in `vars`. Supersedes `varsAssignor`.                                 | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--vars-assignor-pattern <string>`                     | `undefined`   |
+| `varsDelimiter`         | `string`                                                                                                                                                        | A string with which to split `vars` into key-value pairs. Only used if `varsDelimiterPattern` is not provided.                                    | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--vars-delimiter <string>`                            | `' '`         |
+| `varsDelimiterPattern`  | `string \| undefined`                                                                                                                                           | A regular expression pattern with which to split `vars` into key-value pairs. Supersedes `varsDelimiter`.                                         | `getdotenv.config.json`<br>`generateGetDotenvCli`<br>`--vars-delimiter-pattern <string>`                    | `undefined`   |
+
+## Gotchas
+
+### Running Your CLI
+
+It won't have escaped your notice that this is a TypeScript project. And generally speaking—[ts-node](https://www.npmjs.com/package/ts-node) aside—you can't run TypeScript directly. You have to compile it first.
+
+So that's the gotcha. If you want to run your CLI, here are your choices (substituting your own project nomenclature as needed):
+
+1. Run it locally. You'll need to know the path to the compiled file.
+
+```bash
+# compile the project
+npm run build
+
+# view the cli help
+node dist/getdotenvchild.cli.mjs -h
+```
+
+2. Link it locally. You can run it from anywhere on your system, but you need a local clone.
+
+```bash
+# compile the project
+npm run build
+
+# link the project
+npm link
+
+# view the cli help
+getdotenvchild -h
+
+# unlink when done
+npm uninstall -g @karmaniverous/get-dotenv-child
+```
+
+3. Install it locally. You can run it from inside the project where you installed it.
+
+```bash
+# compile the project
+npm run build
+
+# publish the project
+npm run release
+
+# install the package in some other project
+npm install @karmaniverous/get-dotenv-child
+
+# view the cli help
+npx getdotenvchild -h
+```
+
+4. Install it globally. You can run it from anywhere on your system.
+
+```bash
+# compile the project
+npm run build
+
+# publish the project
+npm run release
+
+# install the package globally
+npm install -g @karmaniverous/get-dotenv-child
+
+# view the cli help
+getdotenvchild -h
+```
+
+### Expanding CLI Options & Arguments
+
+If you examine the [`fooCommand`](./src/cli/getdotenvchild/fooCommand.ts) file, you'll see that I employed [`dotenvExpandFromProcessEnv`](https://github.com/karmaniverous/get-dotenv/blob/955d9816352caa5b1853d7234664e2c1a9224de0/src/dotenvExpand.ts#L100-L110) to expand the `target` option against `process.env`.
+
+**Why didn't I just use `dotenvExpandFromProcessEnv` as the input parser for the `target` option?**
+
+_Great_ question! 🤣 Here's what that would look like:
+
+```typescript
+  // The default value '$PUBLIC' is a placeholder for a value loaded via dotenv.
+  .option(
+    '-t, --target <string>',
+    'the target to foo',
+    dotenvExpandFromProcessEnv,
+    '$PUBLIC',
+  )
+```
+
+It turns out that `commander` default option values are _not_ subjected to the provided parsing function. So the configured default value (`'$PUBLIC'`) would get passed to your function logic without ever getting parsed.
+
+**Ok, so why not just parse the defaut value right there in the option configuration?**
+
+Another great question! Here's what _that_ would look like:
+
+```typescript
+  // The default value '$PUBLIC' is a placeholder for a value loaded via dotenv.
+  .option(
+    '-t, --target <string>',
+    'the target to foo',
+    dotenvExpandFromProcessEnv('$PUBLIC'),
+  )
+```
+
+That won't work either, because `commander` will wind up calling `dotenvExpandFromProcessEnv` _before_ it runs `getDotenv`, therefore before `process.env` is populated with your dotenv variables.
+
+So if you intend to expand your options, it makes sense to do so in your action step, which runs _after_ `getDotenv` has populated `process.env`. If you like, you can expand the entire `options` object at once using [`dotenvExpandAll`](https://github.com/karmaniverous/get-dotenv/blob/955d9816352caa5b1853d7234664e2c1a9224de0/src/dotenvExpand.ts#L82-L98)
+
+### Positional & Passthrough Options
 
 The `get-dotenv` CLI is based on the [`commander`](https://www.npmjs.com/package/commander) library, which supports a rich combination of commands, options, arguments, and subcommands.
 

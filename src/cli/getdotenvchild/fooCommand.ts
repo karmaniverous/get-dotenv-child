@@ -15,6 +15,11 @@ export const fooCommand = new Command()
   // The default value '$PUBLIC' is a placeholder for a value loaded via dotenv.
   .option('-t, --target <string>', 'the target to foo', '$PUBLIC')
   .action(({ target }) => {
-    // dotenvExpandFromProcessEnv expands the value of target from your dotenv context.
+    /**
+     * This is your actual command logic.
+     *
+     * In this case we've used dotenvExpandFromProcessEnv to expand the value
+     * of target from your dotenv context. Only necessary if it makes sense.
+     */
     console.log(foo(dotenvExpandFromProcessEnv(target)));
   });

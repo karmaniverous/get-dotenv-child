@@ -1,4 +1,7 @@
 {
   "dynamicPath": "./.env.dynamic.js",
-  "paths": "./ ./environments"
+  "paths": "./ ./environments",
+  "shellScripts": {
+    "git-status": "git branch --show-current && git status -s -u"
+  }
 }

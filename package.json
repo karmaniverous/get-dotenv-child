@@ -7,7 +7,7 @@
     "url": "https://github.com/karmaniverous/get-dotenv-child/issues"
   },
   "dependencies": {
-    "@karmaniverous/get-dotenv": "^4.2.2",
+    "@karmaniverous/get-dotenv": "^4.2.3",
     "commander": "^12.0.0",
     "tslog": "^4.9.2"
   },

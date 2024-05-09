@@ -8,10 +8,15 @@ import { fooCommand } from './fooCommand';
 
 /**
  * Generate the base CLI and add the foo command to it. generateDotenvCli()
- * will pull any default settings from getdotenv.config.json if available. You
- * can also pass options directly to generateGetDotenvCli to override these
+ * will pull any default settings from getdotenv.config.json if available,
+ * as long as you pass it `import.meta.url` to help it find the package root.
+ * You can also pass options directly to generateGetDotenvCli to override these
  * defaults.
  */
-const cli = generateGetDotenvCli().addCommand(fooCommand);
+const cli = (
+  await generateGetDotenvCli({
+    importMetaUrl: import.meta.url,
+  })
+).addCommand(fooCommand);
 
 await cli.parseAsync();

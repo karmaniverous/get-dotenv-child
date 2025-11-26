@@ -1,3 +1,5 @@
+> **THIS REPOSITORY IS DEPRECATED.** It illustrates the [Generated CLI](https://docs.karmanivero.us/get-dotenv/documents/Guides.Generated_CLI.html) path to a custom `get-dotenv` CLI, which has been superseded by the `get-dotenv` [plugin host](https://docs.karmanivero.us/get-dotenv/documents/Guides.Getting_Started.html#3-embed-a-cli-quickly-included-plugins). Please see the `get-dotenv` [documentation](https://docs.karmanivero.us/get-dotenv) for more info!
+
 # get-dotenv Child CLI
 
 This repository demonstrates how to leverage the rich feature set of the [`get-dotenv`](https://github.com/karmaniverous/get-dotenv) CLI within your own project.
